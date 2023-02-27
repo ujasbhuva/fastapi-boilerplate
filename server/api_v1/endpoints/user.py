@@ -99,6 +99,11 @@ async def verify_otp(data: schemas.VerifyOTP, db: Session = Depends(get_db)):
 
     email_otp_obj = crud.email_otp.get_by_email(db, email=email)
     user_obj = crud.user.get_by_email(db, email=email)
+
+    if user_obj:
+        if user_obj.is_verified:
+            raise HTTPException(400, "Your email is already verified.")
+
     if not email_otp_obj:
         db.close()
         raise HTTPException(400, "First proceed via sending OTP request.")
@@ -122,7 +127,7 @@ async def verify_otp(data: schemas.VerifyOTP, db: Session = Depends(get_db)):
                 status_code=200,
                 content={
                     "success": True,
-                    "message": "Password updated.",
+                    "message": "OTP verified successfully, thanks for signup.",
                     "data": {
                         "token": access_token,
                         "token_type": "bearer",
