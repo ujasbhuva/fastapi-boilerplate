@@ -1,0 +1,8 @@
+venv/
+.vscode/
+.env
+test.db
+__pycache__/
+gpt2/
+.vercel
+sql_app.db

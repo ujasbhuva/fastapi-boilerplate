@@ -1,0 +1,6 @@
+apps:
+    -
+        name: bulk-process
+        restart_delay: 100
+        script: uvicorn server.main:app --port 8000 --host 0.0.0.0
+        autorestart: true
