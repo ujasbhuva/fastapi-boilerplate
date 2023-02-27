@@ -17,6 +17,7 @@ install dependencies
 ```
 pip install -r requirements.txt
 ```
+(*you may need to reinstall dependencied for fastapi-mail, bcrypt and starlette (**use: pip install fastapi-mail bcrypt starlette==0.22.0**)*)
 
 start server locally
 ```
