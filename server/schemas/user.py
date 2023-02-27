@@ -80,3 +80,15 @@ class IdTokenRegisterInput(BaseModel):
 
 class EmailSchema(BaseModel):
     email: List[EmailStr]
+
+
+class UserProfile(BaseModel):
+    id: Optional[str] = None
+    email: Optional[EmailStr] = None
+    avatar: Optional[str] = None
+    role: Optional[str] = None
+
+
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str

@@ -11,15 +11,16 @@ from server.utils.auth import (
     create_access_token,
     get_current_user,
     get_password_hash,
+    verify_password,
 )
 from server.utils.common import validate_email_send_otp
 
 from ..deps import get_db
 
-router = APIRouter(prefix="/user", tags=["User"])
+user_router = APIRouter(prefix="/user", tags=["User"])
 
 
-@router.post("/login", response_model=schemas.RespUser)
+@user_router.post("/login", response_model=schemas.RespUser)
 async def login_for_access_token(
     db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
 ):
@@ -48,12 +49,17 @@ async def login_for_access_token(
     )
 
 
-@router.get("/profile")
+@user_router.post("/profile", response_model=schemas.UserProfile)
 async def read_users_me(current_user=Depends(get_current_user)):
-    return current_user
+    return schemas.UserProfile(
+        id=current_user.id,
+        email=current_user.email,
+        avatar=current_user.avatar,
+        role=current_user.role,
+    )
 
 
-@router.post("/sign-up")
+@user_router.post("/sign-up")
 async def sign_up(data: schemas.UserCreateInput, db: Session = Depends(get_db)):
     email = data.email.lower().strip()
     user = crud.user.get_by_email(db, email=email)
@@ -84,7 +90,7 @@ async def sign_up(data: schemas.UserCreateInput, db: Session = Depends(get_db)):
     db.close()
 
 
-@router.post("/verify-otp")
+@user_router.post("/verify-otp")
 async def verify_otp(data: schemas.VerifyOTP, db: Session = Depends(get_db)):
     email = data.email.lower().strip()
     otp_sent = data.otp.lower().strip()
@@ -119,3 +125,65 @@ async def verify_otp(data: schemas.VerifyOTP, db: Session = Depends(get_db)):
         crud.email_otp.remove(db, id=email_otp_obj.id)
         db.close()
         raise HTTPException(400, "OTP is expired, please proceed new OTP.")
+
+
+@user_router.post("/resend-otp")
+async def resend_otp(data: schemas.EmailSchema, db: Session = Depends(get_db)):
+    email = data.email.lower().strip()
+    user_obj = crud.user.get_by_email(db, email=email)
+    if not user_obj:
+        db.close()
+        raise HTTPException(400, "First proceed via sending OTP request.")
+
+    otp_sent = await validate_email_send_otp(db, email, user_obj.id)
+    if otp_sent:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "OTP sent to your email, please verify your email to continue",
+            },
+        )
+
+    db.close()
+
+
+@user_router.post("/change-password")
+async def change_password(
+    data: schemas.ChangePassword,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    old_password = data.old_password
+    new_password = data.new_password
+    user_obj = crud.user.get_by_email(db, email=current_user.email)
+    if not user_obj:
+        db.close()
+        raise HTTPException(400, "User not found.")
+
+    if old_password == new_password:
+        db.close()
+        raise HTTPException(400, "Old password and new password are same.")
+
+    if not verify_password(old_password, user_obj.hashed_password):
+        db.close()
+        raise HTTPException(400, "Old password is incorrect.")
+
+    hashed_password = get_password_hash(new_password)
+    user_obj = crud.user.update(
+        db, db_obj=user_obj, obj_in=schemas.UserUpdate(hashed_password=hashed_password)
+    )
+    access_token_expires = timedelta(minutes=500000)
+    access_token = create_access_token(
+        data={"sub": user_obj.email, "id": user_obj.id},
+        expires_delta=access_token_expires,
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "success": True,
+            "message": "Password changed successfully.",
+            "data": {"token": access_token, "type": "bearer"},
+        },
+    )

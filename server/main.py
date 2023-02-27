@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from server.api_v1.api import api_router
 from server.config import settings
 from server.db.init_db import init_db
+
+from .api import api_router
 
 app = FastAPI(
     title="API-BULK-PROCESS",
