@@ -7,7 +7,7 @@ from server.db.init_db import init_db
 from .api import api_router
 
 app = FastAPI(
-    title="API-BULK-PROCESS",
+    title="FastAPI Boilerplate",
     description="The only 'ghostwriting' service to use REAL ghosts!",
     version="1.0.0",
     debug=settings.debug,
@@ -34,5 +34,5 @@ def app_startup():
 
 
 @app.get("/")
-async def article_writer_home():
+async def welcome():
     return {"status": 200, "message": "Server running"}

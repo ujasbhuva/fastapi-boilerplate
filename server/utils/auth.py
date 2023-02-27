@@ -57,7 +57,7 @@ def decode_token(token: str):
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-):
+) -> schemas.User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -78,7 +78,7 @@ async def get_current_user(
 
 async def get_current_active_user(
     current_user: schemas.User = Depends(get_current_user),
-):
+) -> schemas.User:
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user

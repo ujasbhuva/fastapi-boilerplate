@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
@@ -79,7 +79,7 @@ class IdTokenRegisterInput(BaseModel):
 
 
 class EmailSchema(BaseModel):
-    email: List[EmailStr]
+    email: EmailStr
 
 
 class UserProfile(BaseModel):
@@ -91,4 +91,10 @@ class UserProfile(BaseModel):
 
 class ChangePassword(BaseModel):
     old_password: str
+    new_password: str
+
+
+class ResetPassword(BaseModel):
+    email: EmailStr
+    otp: str
     new_password: str
