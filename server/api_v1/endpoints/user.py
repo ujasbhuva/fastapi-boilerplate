@@ -52,7 +52,7 @@ async def login_for_access_token(
 
 
 @user_router.post("/profile", response_model=schemas.UserProfile)
-async def read_users_me(current_user=Depends(get_current_user)):
+async def get_profile(current_user=Depends(get_current_user)):
     return schemas.UserProfile(
         id=current_user.id,
         email=current_user.email,

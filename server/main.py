@@ -8,7 +8,7 @@ from .api import api_router
 
 app = FastAPI(
     title="FastAPI Boilerplate",
-    description="The only 'ghostwriting' service to use REAL ghosts!",
+    description="Boilerplate to build FastAPI applications with SQLAlchemy, Pydantic, JWT, and User Auth Operations",
     version="1.0.0",
     debug=settings.debug,
 )
