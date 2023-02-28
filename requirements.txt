@@ -1,4 +1,5 @@
 aiosmtplib==2.0.1
+alembic==1.9.4
 anyio==3.6.2
 bcrypt==4.0.1
 black==22.10.0
@@ -24,6 +25,7 @@ identify==2.5.9
 idna==3.4
 inflect==6.0.2
 Jinja2==3.1.2
+Mako==1.2.4
 MarkupSafe==2.1.2
 mccabe==0.7.0
 mypy-extensions==0.4.3
