@@ -4,6 +4,7 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from server.config import settings
+from server.models.user import User, EmailOtp
 from server.db.base_class import Base
 
 # this is the Alembic Config object, which provides
