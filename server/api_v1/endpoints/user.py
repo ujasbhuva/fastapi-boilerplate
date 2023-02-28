@@ -170,13 +170,16 @@ async def verify_otp(data: schemas.VerifyOTP, db: Session = Depends(get_db)):
         db.close()
 
 
-@user_router.post("/resend-otp")
+@user_router.post("/signup-resend-otp")
 async def resend_otp(data: schemas.EmailSchema, db: Session = Depends(get_db)):
     try:
         email = data.email.lower().strip()
         user_obj = crud.user.get_by_email(db, email=email)
         if not user_obj:
             raise HTTPException(400, "First proceed via sending OTP request.")
+
+        if user_obj and user_obj.is_verified:
+            raise HTTPException(400, "Your email is already verified.")
 
         otp_sent = await validate_email_send_otp(db, email, user_obj.id)
         if otp_sent:
@@ -250,8 +253,10 @@ async def change_password(
         db.close()
 
 
-@user_router.post("/forgot-password")
-async def forgot_password(data: schemas.EmailSchema, db: Session = Depends(get_db)):
+@user_router.post("/forgot-password-send-otp")
+async def forgot_password_send_otp(
+    data: schemas.EmailSchema, db: Session = Depends(get_db)
+):
     try:
         email = data.email.lower().strip()
         user_obj = crud.user.get_by_email(db, email=email)
@@ -279,8 +284,10 @@ async def forgot_password(data: schemas.EmailSchema, db: Session = Depends(get_d
         db.close()
 
 
-@user_router.post("/reset-password")
-async def reset_password(data: schemas.ResetPassword, db: Session = Depends(get_db)):
+@user_router.post("/reset-forgot-password")
+async def reset_forgot_password(
+    data: schemas.ResetPassword, db: Session = Depends(get_db)
+):
     try:
         email = data.email.lower().strip()
         otp_sent = data.otp.lower().strip()
@@ -289,7 +296,9 @@ async def reset_password(data: schemas.ResetPassword, db: Session = Depends(get_
         email_otp_obj = crud.email_otp.get_by_email(db, email=email)
         user_obj = crud.user.get_by_email(db, email=email)
         if not email_otp_obj:
-            raise HTTPException(400, "First proceed via sending OTP request.")
+            raise HTTPException(
+                400, "This email is not associated with any account, please sign up."
+            )
 
         otp = email_otp_obj.otp
         time_now = datetime.utcnow()
