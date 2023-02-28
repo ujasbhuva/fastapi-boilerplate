@@ -7,8 +7,8 @@ from server.db.init_db import init_db
 from .api import api_router
 
 app = FastAPI(
-    title="FastAPI Boilerplate",
-    description="Boilerplate to build FastAPI applications with SQLAlchemy, Pydantic, JWT, and User Auth Operations",
+    title="FastAPI Auth Boilerplate",
+    description="Boilerplate with User Authentication Operations, SQLAlchemy, Alembic, Pydantic, and JWT",
     version="1.0.0",
     debug=settings.debug,
 )

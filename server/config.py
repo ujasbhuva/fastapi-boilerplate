@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # POSTGRES_SERVER: str = os.environ.get("POSTGRES_SERVER")
     # POSTGRES_DB: str = os.environ.get("POSTGRES_DB")
 
+    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
+    MAIL_PORT = os.getenv("MAIL_PORT")
+    MAIL_SERVER = os.getenv("MAIL_SERVER")
+
     AUTH_TOKEN = os.getenv("AUTH_TOKEN")
     MAIL_USERNAME = os.getenv("MAIL_USERNAME")
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
