@@ -70,7 +70,7 @@ async def get_profile(current_user=Depends(get_current_user)):
     )
 
 
-@user_router.post("/sign-up")
+@user_router.post("/signup")
 async def sign_up(data: schemas.UserCreateInput, db: Session = Depends(get_db)):
     try:
         email = data.email.lower().strip()
