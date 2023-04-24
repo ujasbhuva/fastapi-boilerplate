@@ -56,7 +56,7 @@ class UserCreateInput(BaseModel):
 class VerifyOTP(BaseModel):
     email: EmailStr
     otp: str
-
+    type: Optional[str] = ""
 
 class UserInDB(User):
     hashed_password: str
@@ -95,6 +95,5 @@ class ChangePassword(BaseModel):
 
 
 class ResetPassword(BaseModel):
-    email: EmailStr
-    otp: str
+    token: str
     new_password: str

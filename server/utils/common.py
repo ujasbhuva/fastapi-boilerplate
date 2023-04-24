@@ -7,9 +7,10 @@ from server import crud, schemas
 from server.utils.mail import send_email
 
 
-async def validate_email_send_otp(db, email, user_id):
+async def validate_email_send_otp(
+    db, email, user_id, link="", key=random.randint(99999, 999999)
+):
     time_now = datetime.utcnow()
-    key = random.randint(99999, 999999)
     old_otp_obj = crud.email_otp.get_by_email(db, email=email)
     if old_otp_obj:
         attempts = old_otp_obj.attempts
@@ -21,7 +22,7 @@ async def validate_email_send_otp(db, email, user_id):
                 db_obj=old_otp_obj,
                 obj_in=schemas.EmailOtpUpdate(created_at=time_now, attempts=1),
             )
-            await send_email(email, key)
+            await send_email(email, key, link)
             return True
         if (attempts >= 10) and (
             (((old_otp_obj.updated_at - old_otp_obj.created_at).total_seconds()) / 60)
@@ -44,5 +45,5 @@ async def validate_email_send_otp(db, email, user_id):
                 email=email, attempts=1, otp=key, user_id=user_id
             ),
         )
-    await send_email(email, key)
+    await send_email(email, key, link)
     return True

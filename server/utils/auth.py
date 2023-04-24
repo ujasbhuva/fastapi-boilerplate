@@ -6,9 +6,11 @@ from fastapi.security import OAuth2AuthorizationCodeBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from kellanb_cryptography import easy
 
 from server import crud, schemas
 from server.api_v1.deps import get_db
+from server.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2AuthorizationCodeBearer(authorizationUrl="auth", tokenUrl="token")
@@ -82,3 +84,18 @@ async def get_current_active_user(
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+def create_email_access_token(email):
+    access_token_expires = timedelta(minutes=10)
+    access_token = create_access_token(
+        data={"sub": easy.encrypt(email, settings.ENCRYPTION_KEY)},
+        expires_delta=access_token_expires,
+    )
+    return access_token
+
+
+def decode_email_access_token(token):
+    payload = decode_token(token)
+    email = easy.decrypt(payload.get("sub"), settings.ENCRYPTION_KEY)
+    return email

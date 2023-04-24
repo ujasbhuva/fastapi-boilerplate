@@ -1,14 +1,19 @@
+import random
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from kellanb_cryptography import easy
 from sqlalchemy.orm import Session
 
 from server import crud, schemas
+from server.config import settings
 from server.utils.auth import (
     authenticate_user,
     create_access_token,
+    create_email_access_token,
+    decode_email_access_token,
     get_current_user,
     get_password_hash,
     verify_password,
@@ -27,6 +32,41 @@ async def login_for_access_token(
     db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
 ):
     try:
+        user = crud.user.get_by_email(db, email=form_data.email)
+        if not user:
+            raise HTTPException(
+                status_code=400,
+                detail="We couldn't find account with this email, please signup",
+            )
+        if not user.is_verified:
+            access_token_expires = timedelta(minutes=10)
+            access_token = create_access_token(
+                data={"sub": easy.encrypt(user.email, settings.ENCRYPTION_KEY)},
+                expires_delta=access_token_expires,
+            )
+
+            otp = random.randint(99999, 999999)
+            link = (
+                str(settings.CLIENT_URL)
+                + "/verify-mail?"
+                + "token="
+                + str(access_token)
+                + "&key="
+                + str(otp)
+            )
+
+            otp_sent = await validate_email_send_otp(db, user.email, user.id, link, otp)
+            if otp_sent:
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "success": True,
+                        "data": access_token if access_token else "",
+                        "error": "EMAIL_NOT_VERIFIED",
+                        "message": "OTP sent to your email, please verify your email to continue.",
+                    },
+                )
+
         user = authenticate_user(db, form_data.username, form_data.password)
         if not user:
             raise HTTPException(
@@ -92,7 +132,19 @@ async def sign_up(data: schemas.UserCreateInput, db: Session = Depends(get_db)):
                 ),
             )
 
-        otp_sent = await validate_email_send_otp(db, email, user.id)
+        access_token = create_email_access_token(user.email)
+
+        otp = random.randint(99999, 999999)
+        link = (
+            str(settings.CLIENT_URL)
+            + "/verify-mail?"
+            + "token="
+            + str(access_token)
+            + "&key="
+            + str(otp)
+        )
+
+        otp_sent = await validate_email_send_otp(db, email, user.id, link, otp)
         if otp_sent:
             return JSONResponse(
                 status_code=200,
@@ -116,13 +168,15 @@ async def sign_up(data: schemas.UserCreateInput, db: Session = Depends(get_db)):
 @user_router.post("/verify-otp")
 async def verify_otp(data: schemas.VerifyOTP, db: Session = Depends(get_db)):
     try:
-        email = data.email.lower().strip()
+        email = decode_email_access_token(data.email)
+
+        email = email.lower().strip()
         otp_sent = data.otp.lower().strip()
 
         email_otp_obj = crud.email_otp.get_by_email(db, email=email)
         user_obj = crud.user.get_by_email(db, email=email)
 
-        if user_obj:
+        if user_obj and not data.type == "fp":
             if user_obj.is_verified:
                 raise HTTPException(400, "Your email is already verified.")
 
@@ -212,16 +266,17 @@ async def change_password(
         old_password = data.old_password
         new_password = data.new_password
         user_obj = crud.user.get_by_email(db, email=current_user.email)
+
         if not user_obj:
             raise HTTPException(400, "User not found.")
-
-        if old_password == new_password:
-            raise HTTPException(400, "Old password and new password are same.")
+        hashed_password = get_password_hash(new_password)
 
         if not verify_password(old_password, user_obj.hashed_password):
             raise HTTPException(400, "Old password is incorrect.")
 
-        hashed_password = get_password_hash(new_password)
+        if verify_password(new_password, user_obj.hashed_password):
+            raise HTTPException(400, "New password is same as your old password.")
+
         user_obj = crud.user.update(
             db,
             db_obj=user_obj,
@@ -259,11 +314,24 @@ async def forgot_password_send_otp(
 ):
     try:
         email = data.email.lower().strip()
-        user_obj = crud.user.get_by_email(db, email=email)
-        if not user_obj:
+        user = crud.user.get_by_email(db, email=email)
+        if not user:
             raise HTTPException(400, "User not found.")
 
-        otp_sent = await validate_email_send_otp(db, email, user_obj.id)
+        access_token = create_email_access_token(user.email)
+
+        otp = random.randint(99999, 999999)
+        link = (
+            str(settings.CLIENT_URL)
+            + "/verify-mail?"
+            + "token="
+            + str(access_token)
+            + "&key="
+            + str(otp)
+            + "&type=fp"
+        )
+
+        otp_sent = await validate_email_send_otp(db, user.email, user.id, link, otp)
         if otp_sent:
             return JSONResponse(
                 status_code=200,
@@ -289,48 +357,34 @@ async def reset_forgot_password(
     data: schemas.ResetPassword, db: Session = Depends(get_db)
 ):
     try:
-        email = data.email.lower().strip()
-        otp_sent = data.otp.lower().strip()
+        email = decode_email_access_token(data.token).lower().strip()
         new_password = data.new_password
 
         email_otp_obj = crud.email_otp.get_by_email(db, email=email)
         user_obj = crud.user.get_by_email(db, email=email)
+
         if not email_otp_obj:
             raise HTTPException(
                 400, "This email is not associated with any account, please sign up."
             )
 
-        otp = email_otp_obj.otp
-        time_now = datetime.utcnow()
+        hashed_password = get_password_hash(new_password)
+        if verify_password(new_password, user_obj.hashed_password):
+            raise HTTPException(400, "New password is same as your old password.")
 
-        if (((time_now - email_otp_obj.updated_at).total_seconds()) / 60) < 10:
-            if str(otp_sent) == str(otp):
-                hashed_password = get_password_hash(new_password)
-                if verify_password(new_password, user_obj.hashed_password):
-                    raise HTTPException(
-                        400, "New password is same as your old password."
-                    )
-
-                user_obj = crud.user.update(
-                    db,
-                    db_obj=user_obj,
-                    obj_in=schemas.UserUpdate(hashed_password=hashed_password),
-                )
-                hashed_password = get_password_hash(new_password)
-
-                crud.email_otp.remove(db, id=email_otp_obj.id)
-                return JSONResponse(
-                    status_code=200,
-                    content={
-                        "success": True,
-                        "message": "OTP matched, please proceed further.",
-                    },
-                )
-            else:
-                raise HTTPException(400, "OTP mismatched, Please provide correct OTP.")
-        else:
-            crud.email_otp.remove(db, id=email_otp_obj.id)
-            raise HTTPException(400, "OTP is expired, please proceed with new OTP.")
+        user_obj = crud.user.update(
+            db,
+            db_obj=user_obj,
+            obj_in=schemas.UserUpdate(hashed_password=hashed_password),
+        )
+        crud.email_otp.remove(db, id=email_otp_obj.id)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "New password saved successfully.",
+            },
+        )
 
     except HTTPException:
         raise

@@ -7,6 +7,7 @@ conf = ConnectionConfig(
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
     MAIL_FROM=settings.MAIL_FROM,
     MAIL_PORT=settings.MAIL_PORT,
+    MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
     MAIL_SERVER=settings.MAIL_SERVER,
     MAIL_STARTTLS=False,
     MAIL_SSL_TLS=True,
@@ -15,19 +16,20 @@ conf = ConnectionConfig(
 )
 
 
-def get_signup_template(otp):
+def get_signup_template(otp, link=""):
     return f"""<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
                 <div style="margin:20px auto;width:1000px;padding:20px 0">
                     <div style="border-bottom:1px solid #eee">
-                    <a href="" style="font-size:1.5rem;color: #00466a;text-decoration:none;font-weight:600">FastAPI Boilerplate</a>
+                    <a href="" style="font-size:1.5rem;color: #00466a;text-decoration:none;font-weight:600">FastAPI</a>
                     </div>
                     <p style="font-size:1.1em">Hi there,</p>
-                    <p>Thank you for choosing FastAPI Boilerplate. Use the following OTP to complete your Sign Up process. OTP is valid for 10 minutes</p>
+                    <p>Thank you for choosing FastAPI. Use the following OTP to complete your email verification process. OTP is valid for 10 minutes</p>
                     <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;">{otp}</h2>
-                    <p style="font-size:0.9em;">Regards,<br />FastAPI Boilerplate</p>
+                    {f'<a style="color: #000;" href={link}>Click on this link to continue</a>' if link else ""}
+                    <p style="font-size:0.9em;">Regards,<br />FastAPI</p>
                     <hr style="border:none;border-top:1px solid #eee" />
                     <div style="float:right;padding:8px 0;color:#aaa;font-size:0.8em;line-height:1;font-weight:300">
-                    <p>FastAPI Boilerplate. Inc</p>
+                    <p>FastAPI. Inc</p>
                     <p>1600 Amphitheatre Parkway</p>
                     <p>California</p>
                     </div>
@@ -36,11 +38,11 @@ def get_signup_template(otp):
             """
 
 
-async def send_email(email, otp):
+async def send_email(email, otp, link=""):
     message = MessageSchema(
         subject="OTP for email verification",
         recipients=[email],
-        body=get_signup_template(otp),
+        body=get_signup_template(otp, link),
         subtype=MessageType.html,
     )
 
