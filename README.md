@@ -26,17 +26,17 @@ source venv/bin/activate
 ```
 
 
-Install dependencies (*you may need to reinstall dependencied for fastapi-mail, bcrypt and starlette (**use: pip install fastapi-mail bcrypt starlette==0.22.0**)*)
+Install dependencies
 ```
 pip install -r requirements.txt
 ```
 
-
+<!-- 
 
 Database migration (*this project currently uses sqlite to manage the database, you can use any sql by changing database connection string at `SQLALCHEMY_DATABASE_URI` in .env file*)
 ```
 python migrate_db.py
-```
+``` -->
 
 
 

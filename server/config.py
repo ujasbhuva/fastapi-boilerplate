@@ -2,7 +2,8 @@ import os
 from typing import List, Union
 
 from dotenv import load_dotenv
-from pydantic import BaseSettings, validator
+from pydantic import validator
+from pydantic_settings import BaseSettings
 
 load_dotenv()
 
@@ -11,18 +12,18 @@ class Settings(BaseSettings):
     debug: bool = os.environ.get("DEBUG")
     FASTAPI_CONFIG: str = os.environ.get("FASTAPI_CONFIG")
 
-    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
-    AUTH_TOKEN = os.getenv("AUTH_TOKEN")
+    SQLALCHEMY_DATABASE_URI: str = os.getenv("SQLALCHEMY_DATABASE_URI")
+    AUTH_TOKEN: str = os.getenv("AUTH_TOKEN")
 
-    MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME")
-    MAIL_USERNAME = os.getenv("MAIL_USERNAME")
-    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
-    MAIL_FROM = os.getenv("MAIL_FROM")
-    MAIL_PORT = os.getenv("MAIL_PORT")
-    MAIL_SERVER = os.getenv("MAIL_SERVER")
-    ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+    MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME")
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD")
+    MAIL_FROM: str = os.getenv("MAIL_FROM")
+    MAIL_PORT: str = os.getenv("MAIL_PORT")
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER")
+    ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY")
 
-    CLIENT_URL = os.getenv("CLIENT_URL")
+    CLIENT_URL: str = os.getenv("CLIENT_URL")
 
     BACKEND_CORS_ORIGINS: List = []
 
@@ -33,8 +34,6 @@ class Settings(BaseSettings):
         elif isinstance(v, (list, str)):
             return v
         raise ValueError(v)
-
-    SENTRY_DSN: str = os.environ.get("SENTRY_DSN")
 
 
 settings = Settings()
